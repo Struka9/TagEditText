@@ -15,7 +15,6 @@ import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.style.ImageSpan;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,7 +29,7 @@ import java.util.List;
  */
 public class TagEditText extends EditText {
 
-    //TODO: Make sure we only add the token if is not in the list
+    //TODO: Make sure we only add the tag if is not in the list
     private LayoutInflater mLayoutInflater;
 
     private boolean mShouldTriggerTextWatcher = true;
@@ -66,9 +65,10 @@ public class TagEditText extends EditText {
     private void init() {
         setMovementMethod(LinkMovementMethod.getInstance());
         mTagList = new ArrayList<>();
+
+        //We don't want to allow ',' to be entered
         setFilters(new InputFilter[]{mFilter});
         mLayoutInflater = LayoutInflater.from(getContext());
-
 
         //Whenever the user presses "Enter" we add the text
         setOnEditorActionListener(new OnEditorActionListener() {
@@ -111,7 +111,7 @@ public class TagEditText extends EditText {
                 return;
             }
         }
-        //super.onSelectionChanged(selStart, selEnd);
+        super.onSelectionChanged(selStart, selEnd);
     }
 
     private void removeByTagValue(String tagValue) {
@@ -121,16 +121,11 @@ public class TagEditText extends EditText {
         for (int i = 0; i < mTagList.size(); i++) {
             Tag tag = mTagList.get(i);
             if (found != -1) {
-//                Tag prev = mTagList.get(i - 1);
-//                Tag next = i == mTagList.size() - 1 ? null : mTagList.get(i + 1);
-
-//                tag.from = prev.to;
-//                tag.to = next != null ? next.from : getText().length();
                 tag.from -= count;
                 tag.to -= count;
             }
 
-            if (tag.tokenValue.compareTo(tagValue) == 0) {
+            if (tag.tagValue.compareTo(tagValue) == 0) {
                 found = i;
                 count = tag.to - tag.from;
             }
@@ -184,7 +179,7 @@ public class TagEditText extends EditText {
                 Tag newTag = new Tag();
                 newTag.from = lastTag.to;
                 newTag.to = wholeText.length();
-                newTag.tokenValue = newTagValue;
+                newTag.tagValue = newTagValue;
 
                 mTagList.add(newTag);
             }
@@ -193,7 +188,7 @@ public class TagEditText extends EditText {
             Tag newTag = new Tag();
             newTag.from = 0;
             newTag.to = wholeText.length();
-            newTag.tokenValue = wholeText;
+            newTag.tagValue = wholeText;
 
             mTagList.add(newTag);
             setTags();
@@ -207,7 +202,7 @@ public class TagEditText extends EditText {
         for (int i = 0; i < mTagList.size(); i++) {
             final Tag tag = mTagList.get(i);
             TextView tv = (TextView) mLayoutInflater.inflate(R.layout.tag_layout, null, false);
-            tv.setText(tag.tokenValue);
+            tv.setText(tag.tagValue);
 
             GradientDrawable d = (GradientDrawable) tv.getBackground();
 
@@ -232,7 +227,8 @@ public class TagEditText extends EditText {
             spannableStringBuilder.setSpan(new ClickableSpan() {
                 @Override
                 public void onClick(View widget) {
-                    //removeByTagValue(tag.tokenValue);
+                    //FIXME: Calling this makes the app to crash, found that the frameworks returns a wrong offset(-1) and makes the Editor to throw an exception
+                    //removeByTagValue(tag.tagValue);
                     //setSelection(getText().length());
                 }
             }, tag.from, tag.to, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -243,7 +239,7 @@ public class TagEditText extends EditText {
     }
 
     private class Tag {
-        String tokenValue;
+        String tagValue;
         //The indices in the text that represent the range of this tag
         int from;
         int to;
